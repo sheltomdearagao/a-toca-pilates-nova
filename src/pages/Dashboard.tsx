@@ -13,6 +13,7 @@ import { useSession } from "@/contexts/SessionProvider";
 import UpcomingPaymentsCard from "@/components/UpcomingPaymentsCard";
 import DataMigrationTool from "@/components/DataMigrationTool";
 import { Link } from "react-router-dom";
+import SaaSDebugger from "@/components/SaaSDebugger"; // Added import
 
 const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -121,6 +122,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      <SaaSDebugger /> {/* Added component */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <img src={logoUrl} alt="A Toca Pilates Logo" className="w-10 h-10 object-contain" />
