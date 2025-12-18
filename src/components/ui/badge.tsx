@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
@@ -15,16 +15,16 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        'status-active': "border-transparent bg-status-active/20 text-status-active",
-        'status-inactive': "border-transparent bg-status-inactive/20 text-status-inactive",
-        'status-experimental': "border-transparent bg-status-experimental/20 text-status-experimental",
-        'status-blocked': "border-transparent bg-status-blocked/20 text-status-blocked",
-        'attendance-scheduled': "border-transparent bg-attendance-scheduled/20 text-attendance-scheduled",
-        'attendance-present': "border-transparent bg-attendance-present/20 text-attendance-present",
-        'attendance-absent': "border-transparent bg-attendance-absent/20 text-attendance-absent",
-        'payment-pending': "border-transparent bg-payment-pending/20 text-payment-pending",
-        'payment-paid': "border-transparent bg-payment-paid/20 text-payment-paid",
-        'payment-overdue': "border-transparent bg-payment-overdue/20 text-payment-overdue",
+        "status-active": "border-transparent bg-green-100 text-green-800 hover:bg-green-200",
+        "status-inactive": "border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200",
+        "status-experimental": "border-transparent bg-orange-100 text-orange-800 hover:bg-orange-200",
+        "status-blocked": "border-transparent bg-red-100 text-red-800 hover:bg-red-200",
+        "attendance-present": "border-transparent bg-green-100 text-green-800 hover:bg-green-200",
+        "attendance-absent": "border-transparent bg-red-100 text-red-800 hover:bg-red-200",
+        "attendance-scheduled": "border-transparent bg-blue-100 text-blue-800 hover:bg-blue-200",
+        "payment-paid": "border-transparent bg-green-100 text-green-800 hover:bg-green-200",
+        "payment-pending": "border-transparent bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+        "payment-overdue": "border-transparent bg-red-100 text-red-800 hover:bg-red-200",
       },
     },
     defaultVariants: {

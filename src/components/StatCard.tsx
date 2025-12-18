@@ -12,20 +12,33 @@ interface StatCardProps {
   icon: React.ReactNode;
   isLoading: boolean;
   variant?: "default" | "gradient" | "gradient-accent" | "gradient-destructive" | "bordered" | "bordered-green" | "bordered-red" | "bordered-yellow";
+  trend?: {
+    value: number;
+    label: string;
+    isPositive: boolean;
+  };
 }
 
-const StatCard = React.memo(({ title, value, description, icon, isLoading, variant = "default" }: StatCardProps) => {
+const StatCard = React.memo(({
+  title,
+  value,
+  description,
+  icon,
+  isLoading,
+  variant = "default",
+  trend
+}: StatCardProps) => {
   // Novo: borda esquerda colorida com base no variant
   let borderLeftClass = "";
   switch (variant) {
     case "bordered-green":
-      borderLeftClass = "border-l-4 border-green-500";
+      borderLeftClass = "border-l-4 border-l-green-500";
       break;
     case "bordered-red":
-      borderLeftClass = "border-l-4 border-red-500";
+      borderLeftClass = "border-l-4 border-l-red-500";
       break;
     case "bordered-yellow":
-      borderLeftClass = "border-l-4 border-yellow-500";
+      borderLeftClass = "border-l-4 border-l-yellow-500";
       break;
     default:
       borderLeftClass = "";
@@ -34,7 +47,7 @@ const StatCard = React.memo(({ title, value, description, icon, isLoading, varia
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:scale-[1.02] hover:shadow-lg shadow-impressionist",
+        "transition-all duration-300 hover:scale-[1.02] hover:shadow-lg shadow-impressionist animate-fade-in-up",
         borderLeftClass,
         (variant === "default" || variant.startsWith("bordered")) && "shadow-subtle-glow"
       )}
@@ -49,7 +62,7 @@ const StatCard = React.memo(({ title, value, description, icon, isLoading, varia
           {title}
         </CardTitle>
         <div className={cn(
-          "p-2 rounded-lg",
+          "p-2 rounded-lg transition-transform duration-200 hover:scale-110",
           variant === "gradient" || variant === "gradient-accent" || variant === "gradient-destructive"
             ? "bg-white/20"
             : "bg-primary/10"
@@ -67,13 +80,13 @@ const StatCard = React.memo(({ title, value, description, icon, isLoading, varia
       <CardContent>
         {isLoading ? (
           <>
-            <Skeleton className="h-8 w-24 mb-2" />
-            {description && <Skeleton className="h-4 w-32" />}
+            <Skeleton className="h-8 w-24 mb-2 animate-shimmer" />
+            {description && <Skeleton className="h-4 w-32 animate-shimmer" />}
           </>
         ) : (
           <>
             <div className={cn(
-              "text-2xl font-bold",
+              "text-2xl font-bold transition-all duration-300",
               variant === "gradient" || variant === "gradient-accent" || variant === "gradient-destructive"
                 ? "text-white"
                 : "text-foreground"
@@ -82,13 +95,22 @@ const StatCard = React.memo(({ title, value, description, icon, isLoading, varia
             </div>
             {description && (
               <p className={cn(
-                "text-xs",
+                "text-xs mt-1",
                 variant === "gradient" || variant === "gradient-accent" || variant === "gradient-destructive"
                   ? "text-white/70"
                   : "text-muted-foreground"
               )}>
                 {description}
               </p>
+            )}
+            {trend && (
+              <div className={cn(
+                "flex items-center gap-1 mt-2 text-xs font-medium",
+                trend.isPositive ? "text-green-600" : "text-red-600"
+              )}>
+                <span>{trend.isPositive ? "↗" : "↘"}</span>
+                <span>{trend.value}% {trend.label}</span>
+              </div>
             )}
           </>
         )}
