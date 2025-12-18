@@ -4,6 +4,7 @@ import { useSession } from "@/contexts/SessionProvider";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
 import DataExporterDialog from "./DataExporterDialog";
+import OrganizationGuard from "./OrganizationGuard";
 
 const Layout = () => {
   const { profile } = useSession();
@@ -14,28 +15,30 @@ const Layout = () => {
   const toggleCollapse = () => setSidebarCollapsed((s) => !s);
 
   return (
-    <div className={cn("min-h-screen relative")}>
-      <Sidebar 
-        onOpenExporter={() => setIsExporterOpen(true)} 
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={toggleCollapse}
-      />
-      <main 
-        className={cn(
-          "flex-1 p-8 bg-background",
-          sidebarCollapsed ? "ml-16" : "ml-64"
-        )}
-        style={{ transition: "margin-left 0.2s" }}
-      >
-        <Outlet />
-      </main>
-      
-      {/* Diálogo de Exportação */}
-      <DataExporterDialog 
-        isOpen={isExporterOpen} 
-        onOpenChange={setIsExporterOpen} 
-      />
-    </div>
+    <OrganizationGuard>
+      <div className={cn("min-h-screen relative")}>
+        <Sidebar 
+          onOpenExporter={() => setIsExporterOpen(true)} 
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={toggleCollapse}
+        />
+        <main 
+          className={cn(
+            "flex-1 p-8 bg-background",
+            sidebarCollapsed ? "ml-16" : "ml-64"
+          )}
+          style={{ transition: "margin-left 0.2s" }}
+        >
+          <Outlet />
+        </main>
+        
+        {/* Diálogo de Exportação */}
+        <DataExporterDialog 
+          isOpen={isExporterOpen} 
+          onOpenChange={setIsExporterOpen} 
+        />
+      </div>
+    </OrganizationGuard>
   );
 };
 
