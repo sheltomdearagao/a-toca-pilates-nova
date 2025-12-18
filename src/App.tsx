@@ -27,6 +27,7 @@ const Landing = lazy(() => import("./pages/Landing"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const OrganizationSettings = lazy(() => import("./pages/OrganizationSettings"));
+const SubscriptionManagement = lazy(() => import("./pages/SubscriptionManagement"));
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
                   <Route path="alunos" element={<Students />} />
                   <Route path="alunos/:studentId" element={<StudentProfile />} />
                   <Route path="configuracoes" element={<OrganizationSettings />} />
+                  <Route path="assinatura" element={<SubscriptionManagement />} />
                 </Route>
               </Route>
               

@@ -88,18 +88,17 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
 
-          // Corrigindo o acesso aos dados da organização
           if (orgMember?.organizations) {
-            // Acessando o primeiro elemento do array organizations
-            const orgData = Array.isArray(orgMember.organizations) 
+            // Fix: Access the organization object correctly
+            const org = Array.isArray(orgMember.organizations) 
               ? orgMember.organizations[0] 
               : orgMember.organizations;
               
-            if (orgData) {
+            if (org) {
               setOrganization({
-                id: orgData.id,
-                name: orgData.name,
-                slug: orgData.slug
+                id: org.id,
+                name: org.name,
+                slug: org.slug
               });
             }
           }

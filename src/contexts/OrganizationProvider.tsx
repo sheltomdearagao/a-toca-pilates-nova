@@ -43,31 +43,25 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
         // Buscar todas as organizações do usuário
         const { data: orgMembers, error: memberError } = await supabase
           .from('organization_members')
-          .select('organization_id')
+          .select('organizations(id, name, slug)')
           .eq('user_id', session.user.id);
 
         if (memberError) throw memberError;
 
-        const orgIds = orgMembers?.map(m => m.organization_id) || [];
+        // Fix: Extract organization objects from the nested structure
+        const orgs: Organization[] = (orgMembers || []).map(m => {
+          const org = Array.isArray(m.organizations) ? m.organizations[0] : m.organizations;
+          return {
+            id: org.id,
+            name: org.name,
+            slug: org.slug
+          };
+        });
         
-        if (orgIds.length === 0) {
-          setOrganizations([]);
-          setOrganization(null);
-          return;
-        }
-
-        // Buscar detalhes das organizações
-        const { data: orgs, error: orgError } = await supabase
-          .from('organizations')
-          .select('id, name, slug')
-          .in('id', orgIds);
-
-        if (orgError) throw orgError;
-
-        setOrganizations(orgs || []);
+        setOrganizations(orgs);
         
         // Definir organização padrão (primeira encontrada)
-        if (orgs && orgs.length > 0) {
+        if (orgs.length > 0) {
           setOrganization(orgs[0]);
         }
       } catch (error) {
