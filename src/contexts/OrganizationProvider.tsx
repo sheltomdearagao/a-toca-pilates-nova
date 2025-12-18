@@ -80,17 +80,37 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
         .select('organizations(id, name, slug)')
         .eq('user_id', session.user.id);
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error('Error fetching organization members:', memberError);
+        throw memberError;
+      }
 
       // Extract organization objects from the nested structure
-      const orgs: Organization[] = (orgMembers || []).map(m => {
-        const org = Array.isArray(m.organizations) ? m.organizations[0] : m.organizations;
-        return {
-          id: org.id,
-          name: org.name,
-          slug: org.slug
-        };
-      });
+      const orgs: Organization[] = [];
+      
+      if (orgMembers) {
+        for (const m of orgMembers) {
+          // Handle different possible structures of organizations
+          let orgData;
+          
+          if (Array.isArray(m.organizations)) {
+            orgData = m.organizations[0];
+          } else if (m.organizations && typeof m.organizations === 'object') {
+            orgData = m.organizations;
+          } else {
+            console.warn('Unexpected organizations structure:', m.organizations);
+            continue;
+          }
+          
+          if (orgData && orgData.id) {
+            orgs.push({
+              id: orgData.id,
+              name: orgData.name,
+              slug: orgData.slug
+            });
+          }
+        }
+      }
       
       setOrganizations(orgs);
       
