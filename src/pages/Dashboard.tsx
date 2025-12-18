@@ -125,8 +125,8 @@ const Dashboard: React.FC = () => {
       <SaaSDebugger /> {/* Added component */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <img src={logoUrl} alt="A Toca Pilates Logo" className="w-10 h-10 object-contain" />
-          <h1 className="text-4xl font-bold text-foreground">Dashboard</h1>
+          <img src={logoUrl} alt="SIGA VIDA Logo" className="w-10 h-10 object-contain" />
+          <h1 className="text-4xl font-bold text-foreground">Dashboard - SIGA VIDA</h1>
         </div>
         <div className="text-sm text-muted-foreground">Bem-vindo de volta! 👋</div>
       </div>

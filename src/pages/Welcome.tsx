@@ -38,7 +38,7 @@ const Welcome = () => {
   return (
     <div className="space-y-8">
       <div className="text-center py-12">
-        <h1 className="text-4xl font-bold mb-4">Bem-vindo à {organization?.name}!</h1>
+        <h1 className="text-4xl font-bold mb-4">Bem-vindo à {organization?.name} - SIGA VIDA!</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           Sua plataforma está pronta para gerenciar sua academia de pilates.
         </p>

@@ -76,14 +76,14 @@ const Pricing = () => {
     setSelectedPlan(planId);
     // Aqui você pode redirecionar para a página de checkout ou pagamento
     // Por enquanto, vamos simular o pagamento e redirecionar para o dashboard
-    navigate('/dashboard');
+    navigate('/checkout');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary py-12">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Planos SIGADesk</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Planos SIGA VIDA</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Escolha o plano perfeito para a sua academia. Cresça com inteligência.
           </p>

@@ -71,7 +71,7 @@ const SubscriptionManagement = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Gerenciar Assinatura</h1>
+        <h1 className="text-3xl font-bold">Gerenciar Assinatura - SIGA VIDA</h1>
         <p className="text-muted-foreground mt-2">
           Gerencie o plano e pagamento da sua organização {organization?.name}
         </p>

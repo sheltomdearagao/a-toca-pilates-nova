@@ -52,7 +52,7 @@ const Landing = () => {
     {
       name: "Ana Silva",
       role: "Proprietária da Pilates Studio",
-      content: "O SIGADesk revolucionou a forma como gerencio minha academia. Tudo em um só lugar!",
+      content: "O SIGA VIDA revolucionou a forma como gerencio minha academia. Tudo em um só lugar!",
       avatar: "AS"
     },
     {
@@ -69,10 +69,10 @@ const Landing = () => {
       <div className="bg-gradient-to-r from-primary to-accent py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-            SIGADesk
+            SIGA VIDA
           </h1>
           <p className="text-xl md:text-2xl text-primary-foreground max-w-3xl mx-auto mb-8">
-            Sistema Integrado de Gestão e Atendimento Preciso para Academias
+            Sistema Integrado de Gestão e Atendimento Vida
           </p>
           <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto mb-10">
             Tudo o que você precisa para gerenciar sua academia de forma inteligente e eficiente.
@@ -178,7 +178,7 @@ const Landing = () => {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">O que nossos clientes dizem</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Academias que já transformaram sua gestão com o SIGADesk
+              Academias que já transformaram sua gestão com o SIGA VIDA
             </p>
           </div>
 
@@ -210,7 +210,7 @@ const Landing = () => {
             Pronto para transformar sua academia?
           </h2>
           <p className="text-xl text-primary-foreground max-w-2xl mx-auto mb-10">
-            Junte-se a centenas de academias que já estão usando o SIGADesk
+            Junte-se a centenas de academias que já estão usando o SIGA VIDA
           </p>
           <Button 
             size="lg" 

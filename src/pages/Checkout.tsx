@@ -42,7 +42,7 @@ const Checkout = () => {
       // Em uma implementação real, aqui você integraria com um gateway de pagamento
       // como Stripe, PayPal, ou um PSP brasileiro como Pagar.me, Iugu, etc.
       
-      showSuccess('Pagamento processado com sucesso! Bem-vindo ao SIGADesk.');
+      showSuccess('Pagamento processado com sucesso! Bem-vindo ao SIGA VIDA.');
       navigate('/dashboard');
     } catch (error) {
       showError('Erro ao processar pagamento. Tente novamente.');
@@ -55,7 +55,7 @@ const Checkout = () => {
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary py-12">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Checkout SIGADesk</h1>
+          <h1 className="text-3xl font-bold">Checkout SIGA VIDA</h1>
           <p className="text-muted-foreground mt-2">
             Complete seu cadastro e escolha seu método de pagamento
           </p>

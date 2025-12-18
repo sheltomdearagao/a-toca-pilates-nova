@@ -63,7 +63,7 @@ const OrganizationSettings = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Configurações da Organização</h1>
+        <h1 className="text-3xl font-bold">Configurações da Organização - SIGA VIDA</h1>
         <p className="text-muted-foreground mt-2">
           Gerencie as configurações da sua organização {organization.name}
         </p>
