@@ -11,6 +11,7 @@ import Layout from "./components/Layout";
 import React from "react";
 import { Loader2 } from "lucide-react";
 
+// Páginas existentes
 const Login = lazy(() => import("./pages/Login"));
 const OrganizationSignup = lazy(() => import("./pages/OrganizationSignup"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -20,6 +21,12 @@ const Students = lazy(() => import("./pages/Students"));
 const StudentProfile = lazy(() => import("./pages/StudentProfile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Welcome = lazy(() => import("./pages/Welcome"));
+
+// Novas páginas do SIGADesk
+const Landing = lazy(() => import("./pages/Landing"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const OrganizationSettings = lazy(() => import("./pages/OrganizationSettings"));
 
 const queryClient = new QueryClient();
 
@@ -36,18 +43,28 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
+              {/* Rotas públicas */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/checkout" element={<Checkout />} />
               <Route path="/signup" element={<OrganizationSignup />} />
+              <Route path="/login" element={<Login />} />
+              
+              {/* Rotas protegidas */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<Layout />}>
+                <Route path="/app" element={<Layout />}>
                   <Route index element={<Welcome />} />
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="agenda" element={<Schedule />} />
                   <Route path="financeiro" element={<Financial />} />
                   <Route path="alunos" element={<Students />} />
                   <Route path="alunos/:studentId" element={<StudentProfile />} />
+                  <Route path="configuracoes" element={<OrganizationSettings />} />
                 </Route>
               </Route>
-              <Route path="/login" element={<Login />} />
+              
+              {/* Redirecionamentos */}
+              <Route path="/app/*" element={<Navigate to="/app/dashboard" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
