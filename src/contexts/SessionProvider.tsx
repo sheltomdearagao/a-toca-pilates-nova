@@ -1,7 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import React from 'react';
 
 type Profile = {
   id: string;
@@ -9,15 +8,23 @@ type Profile = {
   role: string;
 };
 
+type Organization = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
 type SessionContextType = {
   session: Session | null;
   profile: Profile | null;
+  organization: Organization | null;
   isLoading: boolean;
 };
 
 const SessionContext = createContext<SessionContextType>({
   session: null,
   profile: null,
+  organization: null,
   isLoading: true,
 });
 
@@ -27,31 +34,30 @@ const getProfile = async (userId: string): Promise<Profile | null> => {
     .select('id, full_name, role')
     .eq('id', userId)
     .single();
-    
+
   if (error && error.code !== 'PGRST116') {
     console.error("Erro ao buscar perfil:", error);
     return null;
   }
-  
+
   return profileData;
 };
 
-export const SessionProvider = ({ children }: { children: React.ReactNode }) => {
+export const SessionProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Este efeito lida exclusivamente com a sessão e o estado de carregamento.
     const fetchInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
-      setIsLoading(false); // Finaliza o carregamento assim que a sessão é verificada.
+      setIsLoading(false);
     };
 
     fetchInitialSession();
 
-    // Ouve por mudanças futuras (login/logout).
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
@@ -60,8 +66,6 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
   }, []);
 
   useEffect(() => {
-    // Este efeito busca o perfil sempre que a sessão mudar.
-    // Ele não afeta mais o estado de 'isLoading'.
     if (session?.user) {
       getProfile(session.user.id)
         .then(profileData => setProfile(profileData))
@@ -69,13 +73,50 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
           console.error("Falha ao carregar perfil:", e);
           setProfile(null);
         });
+
+      // Buscar organização do usuário
+      const fetchOrganization = async () => {
+        try {
+          const { data: orgMember, error: memberError } = await supabase
+            .from('organization_members')
+            .select('organizations(id, name, slug)')
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (memberError && memberError.code !== 'PGRST116') {
+            console.error("Erro ao buscar organização:", memberError);
+            return;
+          }
+
+          // Corrigindo o acesso aos dados da organização
+          if (orgMember?.organizations) {
+            // Acessando o primeiro elemento do array organizations
+            const orgData = Array.isArray(orgMember.organizations) 
+              ? orgMember.organizations[0] 
+              : orgMember.organizations;
+              
+            if (orgData) {
+              setOrganization({
+                id: orgData.id,
+                name: orgData.name,
+                slug: orgData.slug
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao buscar organização:", error);
+        }
+      };
+
+      fetchOrganization();
     } else {
-      setProfile(null); // Limpa o perfil se não houver sessão.
+      setProfile(null);
+      setOrganization(null);
     }
-  }, [session]); // Depende apenas da sessão.
+  }, [session]);
 
   return (
-    <SessionContext.Provider value={{ session, profile, isLoading }}>
+    <SessionContext.Provider value={{ session, profile, organization, isLoading }}>
       {children}
     </SessionContext.Provider>
   );

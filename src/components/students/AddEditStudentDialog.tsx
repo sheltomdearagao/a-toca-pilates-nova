@@ -3,24 +3,11 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, parseISO, addDays, isAfter, differenceInDays } from 'date-fns';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -33,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showSuccess } from '@/utils/toast';
 import { formatCurrency } from '@/utils/formatters';
 import { Card } from '@/components/ui/card';
+import { useOrganizationData } from '@/hooks/useOrganizationData';
 
 type PriceTable = {
   [planType: string]: {
@@ -82,18 +70,17 @@ const createStudentSchema = (appSettings: any) => {
 
   return z.object({
     name: z.string().min(3, 'Nome obrigatório'),
-    email: z.string().optional().nullable().transform(e => e?.trim() === '' ? null : e).refine(e => !e || z.string().email().safeParse(e).success, {
-      message: 'Email inválido',
-    }),
+    email: z.string().optional().nullable().transform(e => e?.trim() === '' ? null : e)
+      .refine(e => !e || z.string().email().safeParse(e).success, {
+        message: 'Email inválido',
+      }),
     phone: z.string().optional().nullable(),
     address: z.string().optional().nullable(),
     guardian_phone: z.string().optional().nullable(),
     status: z.enum(['Ativo', 'Inativo', 'Experimental', 'Bloqueado']),
     notes: z.string().optional().nullable(),
-
     plan_type: z.enum(planTypes),
     enrollment_type: z.enum(enrollTypes),
-
     // Campos Condicionais
     plan_frequency: z.enum(frequencies).optional().nullable(),
     payment_method: z.enum(methods).optional().nullable(),
@@ -111,7 +98,6 @@ const createStudentSchema = (appSettings: any) => {
       z.number().optional().nullable()
     ),
     is_pro_rata_waived: z.boolean().optional(),
-
     date_of_birth: z.string().optional().nullable(),
     preferred_days: z.array(z.string()).optional().nullable(),
     preferred_time: z.string().optional().nullable(),
@@ -123,20 +109,40 @@ const createStudentSchema = (appSettings: any) => {
     const requiresValidityControl = isParticular && isRecorrente;
 
     if (isParticular && isRecorrente) {
-      if (!data.plan_frequency) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Frequência obrigatória', path: ['plan_frequency'] });
-      if (!data.payment_method) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Método de pagamento obrigatório', path: ['payment_method'] });
+      if (!data.plan_frequency) ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Frequência obrigatória',
+        path: ['plan_frequency']
+      });
+      if (!data.payment_method) ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Método de pagamento obrigatório',
+        path: ['payment_method']
+      });
     }
-    
+
     if (data.has_promotional_value && (!data.discount_description || data.discount_description.trim() === '')) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Descrição do desconto obrigatória', path: ['discount_description'] });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Descrição do desconto obrigatória',
+        path: ['discount_description']
+      });
     }
-    
+
     if (requiresValidityControl) {
       if (!data.payment_date || data.payment_date.trim() === '') {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Data de pagamento obrigatória para controle de validade.', path: ['payment_date'] });
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Data de pagamento obrigatória para controle de validade.',
+          path: ['payment_date']
+        });
       }
       if (!data.validity_duration) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Duração da validade obrigatória para controle de validade.', path: ['validity_duration'] });
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Duração da validade obrigatória para controle de validade.',
+          path: ['validity_duration']
+        });
       }
     }
   });
@@ -154,6 +160,7 @@ interface Props {
 
 const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit, isSubmitting }: Props) => {
   const { data: appSettings, isLoading: settingsLoading } = useAppSettings();
+  const { withOrganization, getOrganizationId } = useOrganizationData();
   
   // Fix: Define schema after appSettings is available
   const schema = React.useMemo(() => {
@@ -164,13 +171,23 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
   const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: '', email: '', phone: '', address: '', guardian_phone: '',
-      status: 'Ativo', notes: '',
-      plan_type: 'Avulso', plan_frequency: null, payment_method: null, monthly_fee: 0,
+      name: '',
+      email: '',
+      phone: '',
+      address: '',
+      guardian_phone: '',
+      status: 'Ativo',
+      notes: '',
+      plan_type: 'Avulso',
+      plan_frequency: null,
+      payment_method: null,
+      monthly_fee: 0,
       enrollment_type: 'Particular',
       date_of_birth: null,
-      preferred_days: [], preferred_time: null,
-      has_promotional_value: false, discount_description: null,
+      preferred_days: [],
+      preferred_time: null,
+      has_promotional_value: false,
+      discount_description: null,
       payment_date: format(new Date(), 'yyyy-MM-dd'),
       validity_duration: 30,
       due_day: 5,
@@ -188,7 +205,6 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
   const isProRataWaived = watch('is_pro_rata_waived');
   const paymentDate = watch('payment_date');
   const monthlyFee = watch('monthly_fee');
-
   const isParticular = enrollmentType === 'Particular';
   const requiresValidityControl = isParticular && planType !== 'Avulso';
 
@@ -201,21 +217,21 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
   // Cálculo de datas e valores
   const { proRataDays, proRataAmount } = useMemo(() => {
     if (!paymentDate || !validityDuration || !planValue || !isParticular) return { proRataDays: 0, proRataAmount: 0 };
-    
+
     const startDate = parseISO(paymentDate);
     const dueDayValue = dueDay;
-    
+
     // Calcular a próxima data de vencimento
     let cycleStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), dueDayValue);
-    
+
     // Se a data de vencimento já passou neste mês, vamos para o próximo mês
     if (cycleStartDate < startDate) {
       cycleStartDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, dueDayValue);
     }
-    
+
     // Calcular a data de término do plano
     const endDate = addDays(cycleStartDate, validityDuration);
-    
+
     // Calcular o número de dias para o proporcional
     const proRataDays = differenceInDays(cycleStartDate, startDate);
     const proRataAmount = (proRataDays / validityDuration) * planValue;
@@ -228,19 +244,20 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
 
   useEffect(() => {
     if (!appSettings?.price_table) return;
-    
+
     // Se não for Particular, zera tudo relacionado a preço
     if (!isParticular || planType === 'Avulso') {
       setValue('monthly_fee', 0);
       setPlanValue(0);
       return;
     }
-    
+
     if (hasPromo) return;
-    
+
     const table: PriceTable = appSettings.price_table;
     const freqMap = table[planType]?.[planFrequency ?? ''];
     const price = freqMap?.[paymentMethod ?? ''];
+
     if (price != null) {
       setValue('monthly_fee', price);
       setPlanValue(price);
@@ -249,6 +266,7 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
 
   useEffect(() => {
     if (!isOpen) return;
+
     if (selectedStudent) {
       reset({
         name: selectedStudent.name,
@@ -264,12 +282,10 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
         monthly_fee: selectedStudent.monthly_fee ?? 0,
         enrollment_type: selectedStudent.enrollment_type,
         date_of_birth: selectedStudent.date_of_birth ? format(parseISO(selectedStudent.date_of_birth), 'yyyy-MM-dd') : null,
-        
         preferred_days: selectedStudent.preferred_days || [],
         preferred_time: selectedStudent.preferred_time || null,
         has_promotional_value: !!selectedStudent.discount_description,
         discount_description: selectedStudent.discount_description || null,
-        
         // Usamos a data de validade existente para preencher a data de pagamento no modo edição
         payment_date: selectedStudent.validity_date ? format(parseISO(selectedStudent.validity_date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
         validity_duration: 30, // Mantemos 30 como default para edição
@@ -278,13 +294,23 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
       });
     } else {
       reset({
-        name: '', email: '', phone: '', address: '', guardian_phone: '',
-        status: 'Ativo', notes: '',
-        plan_type: 'Avulso', plan_frequency: null, payment_method: null, monthly_fee: 0,
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        guardian_phone: '',
+        status: 'Ativo',
+        notes: '',
+        plan_type: 'Avulso',
+        plan_frequency: null,
+        payment_method: null,
+        monthly_fee: 0,
         enrollment_type: 'Particular',
         date_of_birth: null,
-        preferred_days: [], preferred_time: null,
-        has_promotional_value: false, discount_description: null,
+        preferred_days: [],
+        preferred_time: null,
+        has_promotional_value: false,
+        discount_description: null,
         payment_date: format(new Date(), 'yyyy-MM-dd'),
         validity_duration: 30,
         due_day: 5,
@@ -304,7 +330,7 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
     // Verificar se é modo edição
     if (selectedStudent) {
       // Modo Edição: Atualizar apenas o aluno
-      const studentData = {
+      const studentData = withOrganization({
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -313,7 +339,7 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
         status: data.status,
         notes: data.notes,
         // Não incluir campos de plano, pois não queremos alterar a assinatura
-      };
+      });
 
       try {
         const { error: updateError } = await supabase
@@ -322,7 +348,6 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
           .eq('id', selectedStudent.id);
 
         if (updateError) throw new Error(`Erro ao atualizar aluno: ${updateError.message}`);
-
         showSuccess('Cadastro atualizado com sucesso!');
         onOpenChange(false);
       } catch (error: any) {
@@ -331,7 +356,7 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
     } else {
       // Modo Criação: Implementando rollback
       // Passo 2: Preparação e Cálculos
-      const studentData = {
+      const studentData = withOrganization({
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -348,16 +373,17 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
         preferred_days: data.preferred_days,
         preferred_time: data.preferred_time,
         discount_description: data.discount_description,
-        due_day: data.due_day, // Garantindo que é número
+        due_day: data.due_day,
+        // Garantindo que é número
         user_id: user.id, // Adicionando user_id
-      };
+      });
 
       // Calcular end_date da assinatura
       const paymentDateStr = data.payment_date || format(new Date(), 'yyyy-MM-dd');
       const paymentDate: Date = parseISO(paymentDateStr); // Garantindo que é Date
       const validityDuration = data.validity_duration || 30;
       const endDate = addDays(paymentDate, validityDuration);
-      
+
       // Passo 3: Salvar Aluno (students) com rollback
       let newStudent = null;
       try {
@@ -372,7 +398,6 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
 
         // Passo 4: Salvar Assinatura (subscriptions)
         const isParticular = data.enrollment_type === 'Particular';
-        
         const { data: planData, error: planError } = await supabase
           .from('plans')
           .select('id')
@@ -392,9 +417,8 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
             })
             .select()
             .single();
-          
+
           if (createPlanError) throw new Error(`Erro ao criar plano: ${createPlanError.message}`);
-          
           planId = newPlan.id;
         }
 
@@ -416,7 +440,8 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
           .insert({
             student_id: newStudent.id,
             plan_id: planId,
-            price: subscriptionPrice, // Valor do plano recorrente (0 para parceiros)
+            price: subscriptionPrice,
+            // Valor do plano recorrente (0 para parceiros)
             frequency: data.plan_frequency ? parseInt(data.plan_frequency) : 0,
             start_date: paymentDate.toISOString(), // Correção: paymentDate é Date
             end_date: subscriptionEndDate,
@@ -490,73 +515,112 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
             {/* Dados Pessoais */}
             <div className="space-y-2">
               <Label>Nome</Label>
-              <Controller name="name" control={control} render={({ field }) => <Input {...field} />} />
+              <Controller
+                name="name"
+                control={control}
+                render={({ field }) => <Input {...field} />}
+              />
               {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
             </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Email (Opcional)</Label>
-                <Controller name="email" control={control} render={({ field }) => <Input {...field} />} />
+                <Controller
+                  name="email"
+                  control={control}
+                  render={({ field }) => <Input {...field} />}
+                />
                 {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
               </div>
+              
               <div className="space-y-2">
                 <Label>Telefone (Opcional)</Label>
-                <Controller name="phone" control={control} render={({ field }) => <Input {...field} />} />
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => <Input {...field} />}
+                />
               </div>
             </div>
-            
+
             {/* Endereço (agora acima do número do responsável) */}
             <div className="space-y-2">
               <Label>Endereço (Opcional)</Label>
-              <Controller name="address" control={control} render={({ field }) => <Input {...field} />} />
+              <Controller
+                name="address"
+                control={control}
+                render={({ field }) => <Input {...field} />}
+              />
             </div>
-            
+
             {/* Número do responsável (agora abaixo do telefone) */}
             <div className="space-y-2">
               <Label>Telefone Responsável (Opcional)</Label>
-              <Controller name="guardian_phone" control={control} render={({ field }) => <Input {...field} />} />
+              <Controller
+                name="guardian_phone"
+                control={control}
+                render={({ field }) => <Input {...field} />}
+              />
             </div>
-            
+
             <div className="space-y-2">
               <Label>Notas (Opcional)</Label>
-              <Controller name="notes" control={control} render={({ field }) => <Textarea {...field} />} />
+              <Controller
+                name="notes"
+                control={control}
+                render={({ field }) => <Textarea {...field} />}
+              />
             </div>
-            
+
             {/* Data Nasc. (Ajustado para ficar abaixo de Notas) */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Data Nasc. (Opcional)</Label>
-                <Controller name="date_of_birth" control={control} render={({ field }) => <Input type="date" {...field} />} />
+                <Controller
+                  name="date_of_birth"
+                  control={control}
+                  render={({ field }) => <Input type="date" {...field} />}
+                />
               </div>
             </div>
-            
+
             {/* Status do Aluno e Tipo de Matrícula */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Status do Aluno</Label>
-                <Controller name="status" control={control} render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Ativo">Ativo</SelectItem>
-                      <SelectItem value="Inativo">Inativo</SelectItem>
-                      <SelectItem value="Experimental">Experimental</SelectItem>
-                      <SelectItem value="Bloqueado">Bloqueado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )} />
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Ativo">Ativo</SelectItem>
+                        <SelectItem value="Inativo">Inativo</SelectItem>
+                        <SelectItem value="Experimental">Experimental</SelectItem>
+                        <SelectItem value="Bloqueado">Bloqueado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.status && <p className="text-sm text-destructive">{errors.status.message}</p>}
               </div>
+              
               <div className="space-y-2">
                 <Label>Tipo de Matrícula</Label>
-                <Controller name="enrollment_type" control={control} render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {appSettings?.enrollment_types.map(et => <SelectItem key={et} value={et}>{et}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )} />
+                <Controller
+                  name="enrollment_type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {appSettings?.enrollment_types.map(et => <SelectItem key={et} value={et}>{et}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
 
@@ -578,43 +642,62 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Plano</Label>
-                    <Controller name="plan_type" control={control} render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {appSettings?.plan_types.map(pt => <SelectItem key={pt} value={pt}>{pt}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    )} />
+                    <Controller
+                      name="plan_type"
+                      control={control}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {appSettings?.plan_types.map(pt => <SelectItem key={pt} value={pt}>{pt}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                   </div>
+                  
                   <div className="space-y-2">
                     <Label>Frequência</Label>
-                    <Controller name="plan_frequency" control={control} render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={planType === 'Avulso'}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {appSettings?.plan_frequencies.map(fq => <SelectItem key={fq} value={fq}>{fq}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    )} />
+                    <Controller
+                      name="plan_frequency"
+                      control={control}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value || ''} disabled={planType === 'Avulso'}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {appSettings?.plan_frequencies.map(fq => <SelectItem key={fq} value={fq}>{fq}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                     {errors.plan_frequency && <p className="text-sm text-destructive">{errors.plan_frequency.message}</p>}
                   </div>
+                  
                   <div className="space-y-2">
                     <Label>Pagamento</Label>
-                    <Controller name="payment_method" control={control} render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={planType === 'Avulso'}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {appSettings?.payment_methods.map(pm => <SelectItem key={pm} value={pm}>{pm}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    )} />
+                    <Controller
+                      name="payment_method"
+                      control={control}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value || ''} disabled={planType === 'Avulso'}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {appSettings?.payment_methods.map(pm => <SelectItem key={pm} value={pm}>{pm}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                     {errors.payment_method && <p className="text-sm text-destructive">{errors.payment_method.message}</p>}
                   </div>
                 </div>
+                
                 <div className="space-y-2">
                   <Label>Mensalidade (R$)</Label>
-                  <Controller name="monthly_fee" control={control} render={({ field }) => <Input type="number" step="0.01" {...field} />} />
+                  <Controller
+                    name="monthly_fee"
+                    control={control}
+                    render={({ field }) => <Input type="number" step="0.01" {...field} />}
+                  />
                   {errors.monthly_fee && <p className="text-sm text-destructive">{errors.monthly_fee.message}</p>}
                 </div>
               </>
@@ -625,16 +708,20 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Dia de Vencimento</Label>
-                  <Controller name="due_day" control={control} render={({ field }) => (
-                    <Select onValueChange={(value) => setValue('due_day', parseInt(value))} value={field.value.toString()}>
-                      <SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger>
-                      <SelectContent>
-                        {[5, 10, 15, 20, 25, 30].map(day => (
-                          <SelectItem key={day} value={day.toString()}>{day}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )} />
+                  <Controller
+                    name="due_day"
+                    control={control}
+                    render={({ field }) => (
+                      <Select onValueChange={(value) => setValue('due_day', parseInt(value))} value={field.value.toString()}>
+                        <SelectTrigger><SelectValue placeholder="Selecione o dia" /></SelectTrigger>
+                        <SelectContent>
+                          {[5, 10, 15, 20, 25, 30].map(day => (
+                            <SelectItem key={day} value={day.toString()}>{day}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
             )}
@@ -642,60 +729,91 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
             {/* Preferências de Dia/Horário */}
             <div className="space-y-2">
               <Label>Dias Preferidos (Opcional)</Label>
-              <Controller name="preferred_days" control={control} render={({ field }) => (
-                <ToggleGroup type="multiple" value={field.value || []} onValueChange={field.onChange} className="grid grid-cols-4 gap-2">
-                  {DAYS_OF_WEEK.map(d => (
-                    <ToggleGroupItem key={d.value} value={d.value} className={cn("px-2 py-1 rounded", field.value?.includes(d.value) ? "bg-primary text-white" : "bg-muted")}>
-                      {d.label}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              )} />
+              <Controller
+                name="preferred_days"
+                control={control}
+                render={({ field }) => (
+                  <ToggleGroup type="multiple" value={field.value || []} onValueChange={field.onChange} className="grid grid-cols-4 gap-2">
+                    {DAYS_OF_WEEK.map(d => (
+                      <ToggleGroupItem 
+                        key={d.value} 
+                        value={d.value} 
+                        className={cn("px-2 py-1 rounded", field.value?.includes(d.value) ? "bg-primary text-white" : "bg-muted")}
+                      >
+                        {d.label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                )}
+              />
             </div>
+            
             <div className="space-y-2">
               <Label>Horário Preferido (Opcional)</Label>
-              <Controller name="preferred_time" control={control} render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value || ''}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o horário" /></SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_HOURS.map(hr => <SelectItem key={hr} value={hr}>{hr}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )} />
+              <Controller
+                name="preferred_time"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o horário" /></SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_HOURS.map(hr => <SelectItem key={hr} value={hr}>{hr}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
             {/* Promoções */}
             <div className="flex items-center space-x-2">
-              <Controller name="has_promotional_value" control={control} render={({ field }) => (
-                <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isParticular} />
-              )} />
+              <Controller
+                name="has_promotional_value"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isParticular} />
+                )}
+              />
               <Label>Valor Promocional</Label>
             </div>
+            
             {watch('has_promotional_value') && (
               <div className="space-y-2">
                 <Label>Descrição do Desconto</Label>
-                <Controller name="discount_description" control={control} render={({ field }) => <Input {...field} />} />
+                <Controller
+                  name="discount_description"
+                  control={control}
+                  render={({ field }) => <Input {...field} />}
+                />
               </div>
             )}
-            
+
             {/* Controle de Validade */}
             {requiresValidityControl && (
               <div className="grid grid-cols-2 gap-4 border-t pt-4 mt-4">
                 <div className="space-y-2">
                   <Label>Data do Pagamento</Label>
-                  <Controller name="payment_date" control={control} render={({ field }) => <Input type="date" {...field} />} />
+                  <Controller
+                    name="payment_date"
+                    control={control}
+                    render={({ field }) => <Input type="date" {...field} />}
+                  />
                   {errors.payment_date && <p className="text-sm text-destructive">{errors.payment_date.message}</p>}
                 </div>
+                
                 <div className="space-y-2">
                   <Label>Duração da Validade</Label>
-                  <Controller name="validity_duration" control={control} render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={String(field.value || 30)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {VALIDITY_DURATIONS.map(d => <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  )} />
+                  <Controller
+                    name="validity_duration"
+                    control={control}
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={String(field.value || 30)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {VALIDITY_DURATIONS.map(d => <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                   {errors.validity_duration && <p className="text-sm text-destructive">{errors.validity_duration.message}</p>}
                 </div>
               </div>
@@ -721,15 +839,19 @@ const AddEditStudentDialog = ({ isOpen, onOpenChange, selectedStudent, onSubmit,
                   </span>
                 </div>
                 <div className="mt-2 flex items-center space-x-2">
-                  <Controller name="is_pro_rata_waived" control={control} render={({ field }) => (
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  )} />
+                  <Controller
+                    name="is_pro_rata_waived"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    )}
+                  />
                   <Label>Isentar Ajuste Proporcional</Label>
                 </div>
               </div>
             )}
           </div>
-
+          
           <DialogFooter className="flex justify-end gap-2">
             <DialogClose asChild>
               <Button type="button" variant="secondary">Cancelar</Button>

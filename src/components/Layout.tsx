@@ -3,24 +3,30 @@ import { Outlet } from "react-router-dom";
 import { useSession } from "@/contexts/SessionProvider";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
-import DataExporterDialog from "./DataExporterDialog"; // Importar o novo diálogo
+import DataExporterDialog from "./DataExporterDialog";
 
 const Layout = () => {
   const { profile } = useSession();
   const isAdmin = profile?.role === 'admin';
-  const [isExporterOpen, setIsExporterOpen] = useState(false); // Novo estado
+  const [isExporterOpen, setIsExporterOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const toggleCollapse = () => setSidebarCollapsed((s) => !s);
 
   return (
     <div className={cn("min-h-screen relative")}>
-      <Sidebar
-        onOpenExporter={() => setIsExporterOpen(true)}
+      <Sidebar 
+        onOpenExporter={() => setIsExporterOpen(true)} 
         collapsed={sidebarCollapsed}
         onToggleCollapse={toggleCollapse}
       />
-      <main className={cn("flex-1 p-8 bg-background", sidebarCollapsed ? "ml-16" : "ml-64")} style={{ transition: "margin-left 0.2s" }}>
+      <main 
+        className={cn(
+          "flex-1 p-8 bg-background",
+          sidebarCollapsed ? "ml-16" : "ml-64"
+        )}
+        style={{ transition: "margin-left 0.2s" }}
+      >
         <Outlet />
       </main>
       
