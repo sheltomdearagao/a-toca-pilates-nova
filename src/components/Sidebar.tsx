@@ -49,14 +49,10 @@ const Sidebar = ({ onOpenExporter, collapsed, onToggleCollapse }: SidebarProps) 
     }
   };
 
-  const textLabel = (text: string) => (
-    <span className={collapsed ? "sr-only" : "ml-2"}>{text}</span>
-  );
-
   return (
     <aside 
       className={cn(
-        "fixed left-0 top-0 h-screen border-r border-sidebar-border z-20 bg-gradient-to-b from-sidebar-gradient-start to-sidebar-gradient-end overflow-y-auto",
+        "fixed left-0 top-0 h-screen border-r border-r-2 border-sidebar-border z-20 bg-gradient-to-b from-sidebar-gradient-start to-sidebar-gradient-end overflow-y-auto",
         collapsed ? "w-16" : "w-64",
         "flex flex-col transition-width duration-200"
       )}
@@ -66,7 +62,9 @@ const Sidebar = ({ onOpenExporter, collapsed, onToggleCollapse }: SidebarProps) 
         <div className="flex items-center">
           <img src={logoUrl} alt="A Toca Pilates Logo" className="w-6 h-6 object-contain" />
           {!collapsed && (
-            <span className="ml-2 text-xl font-semibold text-foreground">A Toca</span>
+            <span className="ml-2 text-xl font-semibold text-foreground">
+              {organization?.name || 'Carregando...'}
+            </span>
           )}
         </div>
         <button 
@@ -91,24 +89,24 @@ const Sidebar = ({ onOpenExporter, collapsed, onToggleCollapse }: SidebarProps) 
       <nav className="flex flex-col space-y-2 flex-grow px-1">
         <NavLink to="/" className={navLinkClasses} end>
           <LayoutDashboard className="w-5 h-5" />
-          {textLabel("Dashboard")}
+          {collapsed ? null : <span className="ml-2">Dashboard</span>}
         </NavLink>
         
         <NavLink to="/alunos" className={navLinkClasses}>
           <Users className="w-5 h-5" />
-          {textLabel("Alunos")}
+          {collapsed ? null : <span className="ml-2">Alunos</span>}
         </NavLink>
         
         {isAdmin && (
           <NavLink to="/financeiro" className={navLinkClasses}>
             <DollarSign className="w-5 h-5" />
-            {textLabel("Financeiro")}
+            {collapsed ? null : <span className="ml-2">Financeiro</span>}
           </NavLink>
         )}
         
         <NavLink to="/agenda" className={navLinkClasses}>
           <Calendar className="w-5 h-5" />
-          {textLabel("Agenda")}
+          {collapsed ? null : <span className="ml-2">Agenda</span>}
         </NavLink>
       </nav>
 
@@ -123,7 +121,7 @@ const Sidebar = ({ onOpenExporter, collapsed, onToggleCollapse }: SidebarProps) 
             onClick={onOpenExporter}
           >
             <Database className="w-5 h-5" />
-            {textLabel("Backup de Dados")}
+            {collapsed ? null : <span className="ml-2">Backup de Dados</span>}
           </Button>
         )}
         
@@ -138,7 +136,7 @@ const Sidebar = ({ onOpenExporter, collapsed, onToggleCollapse }: SidebarProps) 
           <span className="mr-1">
             <LogOut className="w-5 h-5" />
           </span>
-          {textLabel("Sair")}
+          {collapsed ? null : <span className="ml-2">Sair</span>}
         </Button>
       </div>
     </aside>
