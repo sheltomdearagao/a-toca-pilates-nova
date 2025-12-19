@@ -69,8 +69,9 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       console.log('⏳ [ORG_PROVIDER] Sessão ainda carregando, aguardando...');
       return;
     }
-    if (!session?.user) {
-      console.log('🚫 [ORG_PROVIDER] Usuário não autenticado, limpando organizações.');
+    // IMPORTANT: Only proceed if user is authenticated AND email is confirmed
+    if (!session?.user || !session.user.email_confirmed_at) {
+      console.log('🚫 [ORG_PROVIDER] Usuário não autenticado ou email não confirmado, limpando organizações.');
       setOrganization(null);
       setOrganizations([]);
       setIsLoading(false);
@@ -187,19 +188,19 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
     await fetchOrganizations();
   }, [fetchOrganizations]);
 
-  // Initial load and whenever session changes
+  // Initial load and whenever session or email_confirmed_at changes
   useEffect(() => {
     fetchOrganizations();
-  }, [fetchOrganizations, session]); // Depende de fetchOrganizations e session
+  }, [fetchOrganizations, session?.user?.id, session?.user?.email_confirmed_at]); // Added email_confirmed_at dependency
 
   // Re-set organization context on page reload/refresh if an organization is already selected
   useEffect(() => {
-    if (organization?.id && session?.user) {
+    if (organization?.id && session?.user?.email_confirmed_at) { // Only set context if email is confirmed
       setOrganizationContext(organization.id).catch(error => {
         console.error('Failed to restore organization context on mount:', error);
       });
     }
-  }, [organization?.id, session?.user, setOrganizationContext]);
+  }, [organization?.id, session?.user?.email_confirmed_at, setOrganizationContext]);
 
   return (
     <OrganizationContext.Provider value={{ 
