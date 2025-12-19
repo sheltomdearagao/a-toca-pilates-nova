@@ -28,7 +28,7 @@ const OrganizationContext = createContext<OrganizationContextType>({
 const ORGANIZATION_STORAGE_KEY = 'siga_vida_active_organization';
 
 export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
-  const { session } = useSession();
+  const { session, isLoading: isSessionLoading } = useSession();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,13 +36,14 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   // Set organization context in Supabase session
   const setOrganizationContext = useCallback(async (orgId: string) => {
     try {
+      console.log(`⚙️ [ORG_CONTEXT] Tentando definir contexto para: ${orgId}`);
       // Call the RPC function to set organization context
       const { error } = await supabase.rpc('set_organization_context', {
         p_organization_id: orgId
       });
 
       if (error) {
-        console.error('Error setting organization context:', error);
+        console.error('❌ [ORG_CONTEXT] Erro ao definir contexto da organização:', error);
         throw error;
       }
 
@@ -50,21 +51,26 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       await supabase.from('organization_access_log').insert({
         user_id: session?.user?.id,
         organization_id: orgId,
-        action: 'organization_switched',
+        action: 'organization_context_set',
         ip_address: null, // Could be populated from request headers
         user_agent: navigator.userAgent
       });
 
-      console.log('✅ Organization context set successfully:', orgId);
+      console.log('✅ [ORG_CONTEXT] Contexto da organização definido com sucesso:', orgId);
     } catch (error) {
-      console.error('❌ Failed to set organization context:', error);
+      console.error('❌ [ORG_CONTEXT] Falha ao definir contexto da organização:', error);
       throw error;
     }
   }, [session]);
 
   // Fetch organizations for the current user
   const fetchOrganizations = useCallback(async () => {
+    if (isSessionLoading) {
+      console.log('⏳ [ORG_PROVIDER] Sessão ainda carregando, aguardando...');
+      return;
+    }
     if (!session?.user) {
+      console.log('🚫 [ORG_PROVIDER] Usuário não autenticado, limpando organizações.');
       setOrganization(null);
       setOrganizations([]);
       setIsLoading(false);
@@ -73,6 +79,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       setIsLoading(true);
+      console.log(`🔍 [ORG_PROVIDER] Buscando organizações para o usuário: ${session.user.id}`);
       
       // Fetch all organizations the user belongs to
       const { data: orgMembers, error: memberError } = await supabase
@@ -81,7 +88,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
         .eq('user_id', session.user.id);
 
       if (memberError) {
-        console.error('Error fetching organization members:', memberError);
+        console.error('❌ [ORG_PROVIDER] Erro ao buscar membros da organização:', memberError);
         throw memberError;
       }
 
@@ -90,15 +97,13 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       
       if (orgMembers) {
         for (const m of orgMembers) {
-          // Handle different possible structures of organizations
           let orgData;
-          
           if (Array.isArray(m.organizations)) {
             orgData = m.organizations[0];
           } else if (m.organizations && typeof m.organizations === 'object') {
             orgData = m.organizations;
           } else {
-            console.warn('Unexpected organizations structure:', m.organizations);
+            console.warn('⚠️ [ORG_PROVIDER] Estrutura inesperada de organizações:', m.organizations);
             continue;
           }
           
@@ -113,6 +118,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       }
       
       setOrganizations(orgs);
+      console.log(`📊 [ORG_PROVIDER] ${orgs.length} organizações encontradas.`);
       
       // Try to restore previously selected organization from localStorage
       const savedOrgId = localStorage.getItem(ORGANIZATION_STORAGE_KEY);
@@ -120,9 +126,11 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
 
       if (savedOrgId && orgs.some(o => o.id === savedOrgId)) {
         selectedOrg = orgs.find(o => o.id === savedOrgId) || null;
+        console.log(`💾 [ORG_PROVIDER] Organização salva encontrada: ${selectedOrg?.name || 'N/A'}`);
       } else if (orgs.length > 0) {
         // Default to first organization if no saved preference
         selectedOrg = orgs[0];
+        console.log(`✨ [ORG_PROVIDER] Nenhuma organização salva, selecionando a primeira: ${selectedOrg.name}`);
       }
 
       if (selectedOrg) {
@@ -131,16 +139,16 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem(ORGANIZATION_STORAGE_KEY, selectedOrg.id);
       } else {
         // No organizations found - user is orphaned
-        console.warn('⚠️ User has no organizations');
+        console.warn('⚠️ [ORG_PROVIDER] Usuário não pertence a nenhuma organização.');
         setOrganization(null);
       }
     } catch (error) {
-      console.error('Error fetching organizations:', error);
+      console.error('❌ [ORG_PROVIDER] Erro ao buscar organizações:', error);
       showError('Erro ao carregar organizações. Por favor, recarregue a página.');
     } finally {
       setIsLoading(false);
     }
-  }, [session, setOrganizationContext]);
+  }, [session, isSessionLoading, setOrganizationContext]);
 
   // Switch to a different organization
   const switchOrganization = useCallback(async (orgId: string) => {
@@ -153,6 +161,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       setIsLoading(true);
+      console.log(`🔄 [ORG_PROVIDER] Trocando para organização: ${org.name}`);
       
       // Set the new organization context in the database session
       await setOrganizationContext(orgId);
@@ -166,7 +175,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       // Force a page reload to ensure all queries use the new context
       window.location.reload();
     } catch (error: any) {
-      console.error('Error switching organization:', error);
+      console.error('❌ [ORG_PROVIDER] Erro ao trocar de organização:', error);
       showError('Erro ao trocar de organização: ' + error.message);
     } finally {
       setIsLoading(false);
@@ -178,16 +187,16 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
     await fetchOrganizations();
   }, [fetchOrganizations]);
 
-  // Initial load
+  // Initial load and whenever session changes
   useEffect(() => {
     fetchOrganizations();
-  }, [fetchOrganizations]);
+  }, [fetchOrganizations, session]); // Depende de fetchOrganizations e session
 
-  // Re-set organization context on page reload/refresh
+  // Re-set organization context on page reload/refresh if an organization is already selected
   useEffect(() => {
     if (organization?.id && session?.user) {
       setOrganizationContext(organization.id).catch(error => {
-        console.error('Failed to restore organization context:', error);
+        console.error('Failed to restore organization context on mount:', error);
       });
     }
   }, [organization?.id, session?.user, setOrganizationContext]);

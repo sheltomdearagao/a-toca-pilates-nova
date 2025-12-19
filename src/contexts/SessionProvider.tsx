@@ -8,23 +8,15 @@ type Profile = {
   role: string;
 };
 
-type Organization = {
-  id: string;
-  name: string;
-  slug: string;
-};
-
 type SessionContextType = {
   session: Session | null;
   profile: Profile | null;
-  organization: Organization | null;
   isLoading: boolean;
 };
 
 const SessionContext = createContext<SessionContextType>({
   session: null,
   profile: null,
-  organization: null,
   isLoading: true,
 });
 
@@ -46,7 +38,6 @@ const getProfile = async (userId: string): Promise<Profile | null> => {
 export const SessionProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -73,49 +64,13 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
           console.error("Falha ao carregar perfil:", e);
           setProfile(null);
         });
-
-      // Buscar organização do usuário
-      const fetchOrganization = async () => {
-        try {
-          const { data: orgMember, error: memberError } = await supabase
-            .from('organization_members')
-            .select('organizations(id, name, slug)')
-            .eq('user_id', session.user.id)
-            .single();
-
-          if (memberError && memberError.code !== 'PGRST116') {
-            console.error("Erro ao buscar organização:", memberError);
-            return;
-          }
-
-          if (orgMember?.organizations) {
-            // Fix: Access the organization object correctly
-            const org = Array.isArray(orgMember.organizations) 
-              ? orgMember.organizations[0] 
-              : orgMember.organizations;
-              
-            if (org) {
-              setOrganization({
-                id: org.id,
-                name: org.name,
-                slug: org.slug
-              });
-            }
-          }
-        } catch (error) {
-          console.error("Erro ao buscar organização:", error);
-        }
-      };
-
-      fetchOrganization();
     } else {
       setProfile(null);
-      setOrganization(null);
     }
   }, [session]);
 
   return (
-    <SessionContext.Provider value={{ session, profile, organization, isLoading }}>
+    <SessionContext.Provider value={{ session, profile, isLoading }}>
       {children}
     </SessionContext.Provider>
   );
