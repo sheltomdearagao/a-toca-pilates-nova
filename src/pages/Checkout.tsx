@@ -43,7 +43,7 @@ const Checkout = () => {
       // como Stripe, PayPal, ou um PSP brasileiro como Pagar.me, Iugu, etc.
       
       showSuccess('Pagamento processado com sucesso! Bem-vindo ao SIGA VIDA.');
-      navigate('/dashboard');
+      navigate('/app/dashboard'); // Redirecionamento corrigido para a dashboard
     } catch (error) {
       showError('Erro ao processar pagamento. Tente novamente.');
     } finally {
