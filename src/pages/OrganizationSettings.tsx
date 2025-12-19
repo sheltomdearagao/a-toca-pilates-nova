@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOrganization } from '@/contexts/OrganizationProvider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,18 +7,45 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Save, Users, Mail, Phone } from 'lucide-react';
+import { Loader2, Save, Users, Mail, Phone, MapPin } from 'lucide-react'; // Added MapPin icon
 
 const OrganizationSettings = () => {
-  const { organization, isLoading } = useOrganization();
+  const { organization, isLoading, refreshOrganizations } = useOrganization(); // Added refreshOrganizations
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
-    name: organization?.name || '',
+    name: '',
     description: '',
     email: '',
     phone: '',
     address: ''
   });
+
+  useEffect(() => {
+    if (organization) {
+      // Fetch additional organization details from the database
+      const fetchOrgDetails = async () => {
+        const { data, error } = await supabase
+          .from('organizations')
+          .select('name, description, email, phone, address')
+          .eq('id', organization.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching organization details:', error);
+          showError('Erro ao carregar detalhes da organização.');
+        } else if (data) {
+          setFormData({
+            name: data.name || '',
+            description: data.description || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            address: data.address || ''
+          });
+        }
+      };
+      fetchOrgDetails();
+    }
+  }, [organization]);
 
   if (isLoading) {
     return (
@@ -46,6 +73,10 @@ const OrganizationSettings = () => {
         .from('organizations')
         .update({
           name: formData.name,
+          description: formData.description,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
           updated_at: new Date().toISOString()
         })
         .eq('id', organization.id);
@@ -53,6 +84,7 @@ const OrganizationSettings = () => {
       if (error) throw error;
 
       showSuccess('Configurações salvas com sucesso!');
+      await refreshOrganizations(); // Refresh the organization context to update name in sidebar
     } catch (error: any) {
       showError(error.message);
     } finally {

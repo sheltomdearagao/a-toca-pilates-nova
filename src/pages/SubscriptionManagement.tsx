@@ -25,13 +25,14 @@ const SubscriptionManagement = () => {
   const handleUpgrade = async () => {
     setIsProcessing(true);
     try {
-      // Aqui você integraria com um gateway de pagamento
-      // Por enquanto, vamos simular a atualização da assinatura
+      // Here you would integrate with a payment gateway
+      // For now, we simulate the subscription update
       if (subscription && organization) {
         const { error } = await supabase
           .from('subscriptions')
           .update({
             status: 'active',
+            plan_type: 'professional', // Assuming upgrade to professional plan
             start_date: new Date().toISOString(),
             end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 dias
           })
@@ -93,7 +94,7 @@ const SubscriptionManagement = () => {
               <>
                 <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                   <div>
-                    <h3 className="font-semibold">Plano {subscription.plan_type || 'Profissional'}</h3>
+                    <h3 className="font-semibold">Plano {subscription.plan_type || 'N/A'}</h3> {/* Dynamic plan_type */}
                     <p className="text-sm text-muted-foreground">
                       {isActive ? 'Ativo' : 'Inativo'}
                     </p>

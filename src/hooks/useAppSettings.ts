@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useOrganizationData } from '@/hooks/useOrganizationData'; // Import useOrganizationData
 
 // Tipagem para a nova tabela de preços
 type PriceTable = Record<string, Record<string, Record<string, number>>>;
@@ -49,10 +50,23 @@ const DEFAULT_PRICE_TABLE: PriceTable = {
   }
 };
 
-const fetchAppSettings = async (): Promise<AppSettings> => {
+// Default settings to be used when a new organization is created
+const getDefaultAppSettings = (organizationId: string): { key: string; value: string; organization_id: string }[] => [
+  { key: 'class_capacity', value: '10', organization_id: organizationId },
+  { key: 'revenue_categories', value: JSON.stringify(["Mensalidade", "Aula Avulsa", "Venda de Produto", "Outras Receitas"]), organization_id: organizationId },
+  { key: 'expense_categories', value: JSON.stringify(["Aluguel", "Salários", "Marketing", "Material", "Contas", "Outras Despesas"]), organization_id: organizationId },
+  { key: 'plan_types', value: JSON.stringify(["Mensal", "Trimestral", "Avulso"]), organization_id: organizationId },
+  { key: 'plan_frequencies', value: JSON.stringify(["2x", "3x", "4x", "5x"]), organization_id: organizationId },
+  { key: 'payment_methods', value: JSON.stringify(["Cartão", "Espécie", "Link"]), organization_id: organizationId },
+  { key: 'enrollment_types', value: JSON.stringify(["Particular", "Wellhub", "TotalPass"]), organization_id: organizationId },
+  { key: 'price_table', value: JSON.stringify(DEFAULT_PRICE_TABLE), organization_id: organizationId },
+];
+
+const fetchAppSettings = async (organizationId: string): Promise<AppSettings> => {
   const { data, error } = await supabase
     .from('app_settings')
-    .select('key, value');
+    .select('key, value')
+    .eq('organization_id', organizationId); // Filter by organization_id
 
   if (error) throw new Error(error.message);
 
@@ -92,9 +106,17 @@ const fetchAppSettings = async (): Promise<AppSettings> => {
 };
 
 export const useAppSettings = () => {
+  const { organization, isLoading: isLoadingOrganization } = useOrganizationData();
+
   return useQuery<AppSettings, Error>({
-    queryKey: ['appSettings'],
-    queryFn: fetchAppSettings,
+    queryKey: ['appSettings', organization?.id],
+    queryFn: () => {
+      if (!organization?.id) {
+        throw new Error('Organization ID is not available.');
+      }
+      return fetchAppSettings(organization.id);
+    },
+    enabled: !!organization?.id && !isLoadingOrganization,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 };

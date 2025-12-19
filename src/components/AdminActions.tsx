@@ -15,6 +15,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionProvider';
+import { useOrganizationData } from '@/hooks/useOrganizationData'; // Import useOrganizationData
 
 interface AdminActionsProps {
   className?: string;
@@ -22,6 +23,7 @@ interface AdminActionsProps {
 
 const AdminActions = ({ className }: AdminActionsProps) => {
   const { profile } = useSession();
+  const { getOrganizationId } = useOrganizationData(); // Get organization_id from hook
   const isAdmin = profile?.role === 'admin';
   
   const [isDeleteStudentsOpen, setIsDeleteStudentsOpen] = useState(false);
@@ -37,13 +39,14 @@ const AdminActions = ({ className }: AdminActionsProps) => {
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado.');
+      const organizationId = getOrganizationId(); // Get active organization ID
 
       // 1. Apaga transações financeiras primeiro (sem filtro de student_id)
       console.log('💰 Apagando transações financeiras...');
       const { error: transactionsError } = await supabase
         .from('financial_transactions')
         .delete()
-        .neq('id', null);
+        .eq('organization_id', organizationId); // Filter by organization_id
 
       if (transactionsError) {
         console.error('❌ Erro ao apagar transações:', transactionsError);
@@ -56,7 +59,7 @@ const AdminActions = ({ className }: AdminActionsProps) => {
       const { error: attendeesError } = await supabase
         .from('class_attendees')
         .delete()
-        .neq('id', null);
+        .eq('organization_id', organizationId); // Filter by organization_id
 
       if (attendeesError) {
         console.error('❌ Erro ao apagar participantes:', attendeesError);
@@ -69,7 +72,7 @@ const AdminActions = ({ className }: AdminActionsProps) => {
       const { error: templatesError } = await supabase
         .from('recurring_class_templates')
         .delete()
-        .neq('id', null);
+        .eq('organization_id', organizationId); // Filter by organization_id
 
       if (templatesError) {
         console.error('❌ Erro ao apagar modelos:', templatesError);
@@ -82,7 +85,7 @@ const AdminActions = ({ className }: AdminActionsProps) => {
       const { error: classesError } = await supabase
         .from('classes')
         .delete()
-        .neq('id', null);
+        .eq('organization_id', organizationId); // Filter by organization_id
 
       if (classesError) {
         console.error('❌ Erro ao apagar aulas:', classesError);
@@ -95,7 +98,7 @@ const AdminActions = ({ className }: AdminActionsProps) => {
       const { error: studentsError } = await supabase
         .from('students')
         .delete()
-        .neq('id', null);
+        .eq('organization_id', organizationId); // Filter by organization_id
 
       if (studentsError) {
         console.error('❌ Erro ao apagar alunos:', studentsError);
@@ -128,13 +131,14 @@ const AdminActions = ({ className }: AdminActionsProps) => {
   const clearScheduleMutation = useMutation({
     mutationFn: async () => {
       console.log('🚀 Iniciando processo de limpar agenda...');
+      const organizationId = getOrganizationId(); // Get active organization ID
       
       // Apaga participantes das aulas
       console.log('👥 Apagando participantes...');
       const { error: attendeesError } = await supabase
         .from('class_attendees')
         .delete()
-        .neq('id', null);
+        .eq('organization_id', organizationId); // Filter by organization_id
 
       if (attendeesError) {
         console.error('❌ Erro ao apagar participantes:', attendeesError);
@@ -147,7 +151,7 @@ const AdminActions = ({ className }: AdminActionsProps) => {
       const { error: templatesError } = await supabase
         .from('recurring_class_templates')
         .delete()
-        .neq('id', null);
+        .eq('organization_id', organizationId); // Filter by organization_id
 
       if (templatesError) {
         console.error('❌ Erro ao apagar modelos:', templatesError);
@@ -160,7 +164,7 @@ const AdminActions = ({ className }: AdminActionsProps) => {
       const { error: classesError } = await supabase
         .from('classes')
         .delete()
-        .neq('id', null);
+        .eq('organization_id', organizationId); // Filter by organization_id
 
       if (classesError) {
         console.error('❌ Erro ao apagar aulas:', classesError);
@@ -190,6 +194,7 @@ const AdminActions = ({ className }: AdminActionsProps) => {
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado.');
+      const organizationId = getOrganizationId(); // Get active organization ID
 
       // Lista de tabelas para apagar
       const tables = [
@@ -198,10 +203,9 @@ const AdminActions = ({ className }: AdminActionsProps) => {
         'classes',
         'recurring_class_templates',
         'students',
-        'profiles',
         'reposition_credit_entries',
         'reposition_credit_usage_log',
-        'app_settings'
+        'app_settings' // Include app_settings
       ];
 
       console.log('📋 Tabelas a serem apagadas:', tables);
@@ -211,15 +215,15 @@ const AdminActions = ({ className }: AdminActionsProps) => {
         console.log(`🗑️ Apagando tabela: ${table}`);
         
         try {
-          // Para profiles, mantém o admin atual
-          const query = supabase
-            .from(table)
-            .delete();
+          let query = supabase.from(table).delete();
           
+          // Special handling for profiles and app_settings
           if (table === 'profiles') {
-            query.neq('id', user.id);
+            query = query.neq('id', user.id); // Keep current admin profile
+          } else if (table === 'app_settings') {
+            query = query.eq('organization_id', organizationId); // Filter app_settings by organization
           } else {
-            query.neq('id', null);
+            query = query.eq('organization_id', organizationId); // Filter by organization_id for other tables
           }
           
           const { error, count } = await query;
@@ -231,8 +235,8 @@ const AdminActions = ({ className }: AdminActionsProps) => {
           
           console.log(`✅ ${table}: ${count} registros apagados`);
         } catch (error) {
-          console.error(`⚠️ Erro ao apagar ${table} (pode não existir):`, error);
-          // Continua mesmo se a tabela não existir
+          console.error(`⚠️ Erro ao apagar ${table} (pode não existir ou ter RLS):`, error);
+          // Continua mesmo se a tabela não existir ou RLS impedir
         }
       }
 
@@ -409,7 +413,7 @@ const AdminActions = ({ className }: AdminActionsProps) => {
                 <strong>⚠️ PERIGO MÁXIMO:</strong> Esta ação irá apagar TODOS os dados do sistema:
               </p>
               <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>✅ Todos os alunos e perfis</li>
+                <li>✅ Todos os alunos e perfis (exceto o seu)</li>
                 <li>✅ Todas as transações financeiras</li>
                 <li>✅ Toda a agenda e aulas</li>
                 <li>✅ Todos os créditos de reposição</li>
