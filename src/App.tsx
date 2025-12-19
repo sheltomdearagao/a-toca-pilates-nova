@@ -54,7 +54,7 @@ const App = () => (
               {/* Rotas protegidas */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/app" element={<Layout />}>
-                  <Route index element={<Welcome />} />
+                  <Route index element={<Welcome />} /> {/* Agora a rota base /app vai para Welcome */}
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="agenda" element={<Schedule />} />
                   <Route path="financeiro" element={<Financial />} />
@@ -66,7 +66,7 @@ const App = () => (
               </Route>
               
               {/* Redirecionamentos */}
-              <Route path="/app/*" element={<Navigate to="/app/dashboard" replace />} />
+              {/* Removido o redirecionamento de /app/* para /app/dashboard, agora /app vai para Welcome */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
