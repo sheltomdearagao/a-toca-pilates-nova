@@ -65,13 +65,19 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
 
   // Fetch organizations for the current user
   const fetchOrganizations = useCallback(async () => {
-    if (isSessionLoading) {
-      console.log('⏳ [ORG_PROVIDER] Sessão ainda carregando, aguardando...');
+    console.log(`[ORG_PROVIDER DEBUG] isSessionLoading: ${isSessionLoading}, session: ${session ? 'present' : 'null'}, session.user: ${session?.user ? 'present' : 'null'}, session.user.email_confirmed_at: ${session?.user?.email_confirmed_at}`);
+
+    if (isSessionLoading || !session?.user) {
+      console.log('🚫 [ORG_PROVIDER] Sessão não carregada ou usuário não autenticado, limpando organizações.');
+      setOrganization(null);
+      setOrganizations([]);
+      setIsLoading(false);
       return;
     }
-    // IMPORTANT: Only proceed if user is authenticated AND email is confirmed
-    if (!session?.user || !session.user.email_confirmed_at) {
-      console.log('🚫 [ORG_PROVIDER] Usuário não autenticado ou email não confirmado, limpando organizações.');
+
+    // Only proceed if email is confirmed
+    if (!session.user.email_confirmed_at) {
+      console.log('🚫 [ORG_PROVIDER] Email do usuário não confirmado, aguardando confirmação.');
       setOrganization(null);
       setOrganizations([]);
       setIsLoading(false);
@@ -80,7 +86,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       setIsLoading(true);
-      console.log(`🔍 [ORG_PROVIDER] Buscando organizações para o usuário: ${session.user.id}`);
+      console.log(`🔍 [ORG_PROVIDER] Buscando organizações para o usuário: ${session.user.id} (email_confirmed_at: ${session.user.email_confirmed_at})`);
       
       // Fetch all organizations the user belongs to
       const { data: orgMembers, error: memberError } = await supabase
@@ -165,11 +171,11 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       console.log(`🔄 [ORG_PROVIDER] Trocando para organização: ${org.name}`);
       
       // Set the new organization context in the database session
-      await setOrganizationContext(orgId);
+      await setOrganizationContext(org.id); // Use org.id directly
       
       // Update local state
       setOrganization(org);
-      localStorage.setItem(ORGANIZATION_STORAGE_KEY, orgId);
+      localStorage.setItem(ORGANIZATION_STORAGE_KEY, org.id);
       
       showSuccess(`Organização alterada para: ${org.name}`);
       
