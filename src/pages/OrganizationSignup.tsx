@@ -46,66 +46,35 @@ const OrganizationSignup = () => {
     e.preventDefault();
     setIsLoading(true);
 
+    if (formData.adminPassword !== formData.confirmPassword) {
+      showError('As senhas não coincidem.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // 1. Criar usuário admin da organização
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // O trigger do banco de dados (create_organization_on_signup)
+      // irá lidar com a criação da organização, membro, perfil e assinatura de teste.
+      const { error: authError } = await supabase.auth.signUp({
         email: formData.adminEmail,
         password: formData.adminPassword,
         options: {
           data: {
             full_name: formData.adminName,
-            role: 'org_admin',
-            company: formData.companyName
+            // Passamos o nome da empresa para o trigger usar no nome da organização
+            company_name: formData.companyName 
           }
         }
       });
 
       if (authError) throw authError;
 
-      if (!authData.user) {
-        throw new Error('Falha ao criar usuário');
-      }
-
-      // 2. Criar organização
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .insert({
-          name: formData.companyName,
-          slug: formData.companyName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-        })
-        .select()
-        .single();
-
-      if (orgError) throw orgError;
-
-      // 3. Criar associação do admin com a organização
-      const { error: memberError } = await supabase
-        .from('organization_members')
-        .insert({
-          organization_id: orgData.id,
-          user_id: authData.user.id,
-          role: 'admin'
-        });
-
-      if (memberError) throw memberError;
-
-      // 4. Criar assinatura (simulada)
-      const { error: subscriptionError } = await supabase
-        .from('subscriptions')
-        .insert({
-          organization_id: orgData.id,
-          plan_type: selectedPlan,
-          status: 'trial', // Iniciar com período de teste
-          start_date: new Date().toISOString(),
-          end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() // 14 dias de teste
-        });
-
-      if (subscriptionError) throw subscriptionError;
-
       showSuccess('Organização criada com sucesso! Verifique seu email para confirmar a conta.');
       navigate('/login');
     } catch (error: any) {
-      showError(error.message || 'Erro ao criar organização');
+      // Se o erro for de email já registrado, o Supabase lida com isso.
+      showError(error.message || 'Erro ao criar organização. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +106,7 @@ const OrganizationSignup = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary flex items-center justify-center p-4">
-      <Card className="w-full max-w-4xl">
+      <Card className="w-full max-w-4xl shadow-impressionist shadow-subtle-glow">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
